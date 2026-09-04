@@ -160,7 +160,7 @@ The finished writeup is in:
 research_summary.md
 ```
 
-The main result is that nominal wage income rose after COVID, but inflation adjusted wage income was roughly flat. In other words, wages rose on paper, but higher prices erased most of the purchasing power gain.
+The main result is that nominal wage income rose after COVID, but inflation adjusted wage income rose much less. In other words, wages rose on paper, but higher prices erased most of the purchasing power gain.
 
 Younger workers, women, and workers without college degrees had better real wage outcomes than older workers, men, and workers with college degrees. The remote work result is more mixed. Workers in occupations suited to remote work had higher wage levels overall, but their real wage growth after COVID was weaker than the growth for less remote suited occupations. The key number for that part is:
 
