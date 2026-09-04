@@ -72,27 +72,27 @@ college$group <- ifelse(college$college == 1,
   "No college degree"
 )
 
-p1 <- ggplot(overall, aes(x = year, y = annual_wage)) +
+p1 <- ggplot(overall, aes(x = year, y = real_annual_wage)) +
   geom_line(color = "#2563eb", linewidth = 1.1) +
   geom_point(color = "#2563eb", size = 2) +
   geom_vline(xintercept = 2020, linetype = "dashed", color = "gray40") +
   labs(
-    title = "Post COVID Wage Growth",
+    title = "Post COVID Purchasing Power Wages",
     x = "Year",
-    y = "Average annual wage income"
+    y = "Average annual wage income in 2024 dollars"
   ) +
   theme_minimal()
 
 ggsave("outputs/figures/overall_wage_growth.png", p1, width = 8, height = 5, dpi = 300)
 
-p2 <- ggplot(remote, aes(x = year, y = log_wage, color = group)) +
+p2 <- ggplot(remote, aes(x = year, y = log_real_wage, color = group)) +
   geom_line(linewidth = 1.1) +
   geom_point(size = 2) +
   geom_vline(xintercept = 2020, linetype = "dashed", color = "gray40") +
   labs(
-    title = "Post COVID Wages by Remote Work Feasibility",
+    title = "Post COVID Purchasing Power Wages by Remote Work Feasibility",
     x = "Year",
-    y = "Average log annual wage income",
+    y = "Average log real annual wage income",
     color = ""
   ) +
   theme_minimal()
@@ -100,21 +100,21 @@ p2 <- ggplot(remote, aes(x = year, y = log_wage, color = group)) +
 ggsave("outputs/figures/log_wage_trends.png", p2, width = 8, height = 5, dpi = 300)
 
 industry$period <- ifelse(industry$year > 2020, "After COVID", "Before COVID")
-industry_avg <- aggregate(annual_wage ~ ind + period, data = industry, FUN = mean)
+industry_avg <- aggregate(real_annual_wage ~ ind + period, data = industry, FUN = mean)
 
 industry_pre <- subset(industry_avg, period == "Before COVID")
 industry_post <- subset(industry_avg, period == "After COVID")
 
-names(industry_pre)[3] <- "pre_wage"
-names(industry_post)[3] <- "post_wage"
+names(industry_pre)[3] <- "pre_real_wage"
+names(industry_post)[3] <- "post_real_wage"
 
 industry_growth <- merge(
-  industry_pre[, c("ind", "pre_wage")],
-  industry_post[, c("ind", "post_wage")],
+  industry_pre[, c("ind", "pre_real_wage")],
+  industry_post[, c("ind", "post_real_wage")],
   by = "ind"
 )
 
-industry_growth$wage_growth <- industry_growth$post_wage - industry_growth$pre_wage
+industry_growth$wage_growth <- industry_growth$post_real_wage - industry_growth$pre_real_wage
 industry_growth <- industry_growth[order(-industry_growth$wage_growth), ]
 top_industry <- head(industry_growth, 10)
 top_industry$ind <- as.character(top_industry$ind)
@@ -125,16 +125,16 @@ p8 <- ggplot(top_industry, aes(x = reorder(ind, wage_growth), y = wage_growth)) 
   geom_col(fill = "#2563eb") +
   coord_flip() +
   labs(
-    title = "Industries With the Biggest Post COVID Wage Growth",
+    title = "Industries With the Biggest Post COVID Purchasing Power Growth",
     x = "Industry code",
-    y = "Wage income growth after COVID"
+    y = "Real wage income growth after COVID"
   ) +
   theme_minimal()
 
 ggsave("outputs/figures/top_industry_growth.png", p8, width = 8, height = 5, dpi = 300)
 
 state_level <- subset(state, year > 2020)
-state_level <- aggregate(annual_wage ~ stateicp + state_name, data = state_level, FUN = mean)
+state_level <- aggregate(real_annual_wage ~ stateicp + state_name, data = state_level, FUN = mean)
 names(state_level)[3] <- "post_covid_wage"
 state_level <- state_level[order(-state_level$post_covid_wage), ]
 top_state_level <- head(state_level, 15)
@@ -145,9 +145,9 @@ p10 <- ggplot(top_state_level, aes(x = reorder(state_name, post_covid_wage), y =
   geom_col(fill = "#7c3aed") +
   coord_flip() +
   labs(
-    title = "States With the Highest Wage Levels After COVID",
+    title = "States With the Highest Purchasing Power Wages After COVID",
     x = "State",
-    y = "Average annual wage income after COVID"
+    y = "Average annual wage income in 2024 dollars"
   ) +
   theme_minimal()
 
@@ -168,45 +168,45 @@ p12 <- ggplot(p12_data, aes(x = year, y = wage, color = group)) +
   geom_point(size = 2) +
   geom_vline(xintercept = 2020, linetype = "dashed", color = "gray40") +
   labs(
-    title = "Lower, Median, and Higher Wage Trends After COVID",
+    title = "Lower, Median, and Higher Purchasing Power Wage Trends",
     x = "Year",
-    y = "Annual wage income",
+    y = "Annual wage income in 2024 dollars",
     color = ""
   ) +
   theme_minimal()
 
 ggsave("outputs/figures/p10_p50_p90_trends.png", p12, width = 8, height = 5, dpi = 300)
 
-gender_small <- gender[, c("year", "annual_wage", "group")]
+gender_small <- gender[, c("year", "real_annual_wage", "group")]
 gender_small$type <- "Gender"
 
-college_small <- college[, c("year", "annual_wage", "group")]
+college_small <- college[, c("year", "real_annual_wage", "group")]
 college_small$type <- "Education"
 
-age_small <- age[, c("year", "annual_wage", "group")]
+age_small <- age[, c("year", "real_annual_wage", "group")]
 age_small$type <- "Age"
 
-race_small <- race[, c("year", "annual_wage", "group")]
+race_small <- race[, c("year", "real_annual_wage", "group")]
 race_small$type <- "Race"
 
 group_data <- rbind(gender_small, college_small, age_small, race_small)
 group_data$period <- ifelse(group_data$year > 2020, "After COVID", "Before COVID")
 
-group_avg <- aggregate(annual_wage ~ type + group + period, data = group_data, FUN = mean)
+group_avg <- aggregate(real_annual_wage ~ type + group + period, data = group_data, FUN = mean)
 
 group_pre <- subset(group_avg, period == "Before COVID")
 group_post <- subset(group_avg, period == "After COVID")
 
-names(group_pre)[4] <- "pre_wage"
-names(group_post)[4] <- "post_wage"
+names(group_pre)[4] <- "pre_real_wage"
+names(group_post)[4] <- "post_real_wage"
 
 group_growth <- merge(
-  group_pre[, c("type", "group", "pre_wage")],
-  group_post[, c("type", "group", "post_wage")],
+  group_pre[, c("type", "group", "pre_real_wage")],
+  group_post[, c("type", "group", "post_real_wage")],
   by = c("type", "group")
 )
 
-group_growth$percent_growth <- 100 * (group_growth$post_wage - group_growth$pre_wage) / group_growth$pre_wage
+group_growth$percent_growth <- 100 * (group_growth$post_real_wage - group_growth$pre_real_wage) / group_growth$pre_real_wage
 
 write.csv(group_growth, "outputs/tables/percent_growth_by_group.csv", row.names = FALSE)
 
@@ -215,9 +215,9 @@ p13 <- ggplot(group_growth, aes(x = reorder(group, percent_growth), y = percent_
   coord_flip() +
   facet_wrap(~type, scales = "free_y") +
   labs(
-    title = "Post COVID Percent Wage Growth by Group",
+    title = "Post COVID Purchasing Power Wage Growth by Group",
     x = "",
-    y = "Percent growth from before COVID to after COVID"
+    y = "Percent growth in 2024 dollars"
   ) +
   theme_minimal()
 
