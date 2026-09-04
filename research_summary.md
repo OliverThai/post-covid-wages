@@ -2,13 +2,11 @@
 
 ## 1. Introduction
 
-This project studies how purchasing power wages changed after COVID using public ACS/IPUMS labor market data. The main question is whether workers were actually better off after COVID once inflation is taken into account, and whether those changes looked different across groups of workers.
-
-The project also keeps a remote work angle. Instead of using private company promotion records, it uses public occupation data to compare workers in occupations that are more suited to remote work with workers in occupations that are less suited to remote work.
+This project studies how wages changed after COVID using public ACS/IPUMS labor market data, and whether those changes looked different across groups of workers.
 
 ## 2. Data
 
-The main worker data comes from ACS/IPUMS. The sample includes employed workers ages 25 to 54 from 2016, 2017, 2018, 2019, 2021, 2022, 2023, and 2024. The final analysis sample has about 3.76 million workers.
+The main worker data comes from ACS/IPUMS. The sample includes employed workers ages 25 to 54 from 2016, 2017, 2018, 2019, 2021, 2022, 2023, and 2024. Those who were employed, between the ages of 25 and 54, and had a valid annual wage were kept in this data set. The intial data incuded 26,255,293 observations, and the final data incuded 3,761,679 observations.
 
 The wage variable comes from `INCWAGE`. Because the project covers years with very different price levels, the main outcome is inflation adjusted annual wage income. Each year is converted into 2024 dollars using CPI-U annual averages:
 
@@ -16,9 +14,9 @@ The wage variable comes from `INCWAGE`. Because the project covers years with ve
 real_annual_wage = annual_wage * CPI_2024 / CPI_year
 ```
 
-This means a wage from 2016 is adjusted using the 2016 CPI, a wage from 2021 is adjusted using the 2021 CPI, and so on. The goal is to compare wages in the same dollar value instead of mixing wage growth with inflation.
+This is to compare real wages along with nominal wages.
 
-The remote work measure comes from Dingel and Neiman occupation level work from home feasibility scores. Workers are merged to this file using the ACS `OCCSOC` occupation code. About 42 percent of workers in the sample are in occupations classified as more suited to remote work.
+The remote work measure comes from Dingel and Neiman work from home scores. Workers are merged to this file using the `OCCSOC` occupation code. About 42 percent of workers in the sample are in occupations classified as more suited to remote work.
 
 ## 3. Empirical Strategy
 
@@ -44,9 +42,7 @@ This coefficient shows whether purchasing power wages changed differently after 
 
 ## 4. Results
 
-The nominal wage numbers and the inflation adjusted numbers tell different stories. In nominal dollars, average annual wage income rose from about $48,269 before COVID to about $57,083 after COVID, an increase of about 18 percent.
-
-After adjusting each year into 2024 dollars, the pattern is much flatter. Average real annual wage income was about $61,058 before COVID and about $60,611 after COVID. That is a decrease of about 0.7 percent. In plain words, wages rose on paper, but inflation erased most of the gain in purchasing power.
+In nominal dollars, average annual wage income rose from about $48,269 before COVID to about $57,083 after COVID, an increase of about 18 percent. However, after adjusting each year according to inflation, wages actually decreased. Average real annual wage income was about $61,058 before COVID and about $60,611 after COVID according to the 2024 value. That is a decrease of about 0.7 percent. Even though wages increased, purchasing power decreased.
 
 The remote work comparison also changes once the focus is on purchasing power. Before COVID, workers in remote suited occupations had higher real wage income than workers in less remote suited occupations. However, average real wage growth was lower for remote suited occupations after COVID. Real wage income increased by about 1.8 percent for less remote suited occupations, while it fell by about 4.6 percent for remote suited occupations.
 
