@@ -153,16 +153,18 @@ outputs/figures/percent_growth_by_group.png
 
 ## Results
 
-The results are not written into the project yet. After running the Stata files, the main regression output will be in:
+The finished writeup is in:
 
 ```text
-outputs/tables/regressions.txt
+research_summary.md
 ```
 
-The key number for the remote work part is:
+The main result is that wage income was higher after COVID in the ACS sample, but the gains were not the same across groups. Younger workers, women, and workers without college degrees had larger percent increases in average annual wage income.
+
+The remote work result is more mixed. Workers in occupations suited to remote work had higher wage levels overall, but the remote work interaction was slightly negative after controls. The key number for that part is:
 
 ```text
 1.remote_workable#1.covid
 ```
 
-The figures can be used to describe overall wage growth, wage growth by group, industry wage growth, state wage levels, and wage inequality after COVID.
+The full regression output is saved in `outputs/tables/regressions.txt`.
