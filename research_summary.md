@@ -1,8 +1,10 @@
 # Post COVID Wages
 
-## 1. Introduction
-
 This project studies how wages changed after COVID using public ACS/IPUMS labor market data, and whether those changes looked different across groups of workers.
+
+## 1. Hypothesis
+
+My hypothesis is that the average real wage would decrease after COVID, as the shift in demand for less services and increased government stimuluses are expected to increase inflation. I expect wage changes to differ across occupations, industries, and ages.
 
 ## 2. Data
 
