@@ -1,20 +1,18 @@
 # Post COVID Wages
 
-This project looks at how purchasing power wages changed after COVID using public ACS/IPUMS labor market data. The main question is whether real wage growth after COVID looked different across workers, industries, states, and occupations that were more or less suited to remote work.
+This project looks at how wages changed after COVID using public ACS/IPUMS data. I adjust earnings for inflation to see whether workers could actually afford more, then compare changes across groups of workers, industries, states, and occupations suited to remote work.
 
-The project uses Stata for the main cleaning and regression work. R is used at the end to make the figures.
+I use Stata to clean the data and run regressions, and R to make the figures.
 
 ## Research Question
 
-How were purchasing power wages affected after COVID, and did those changes differ across groups of workers?
+How did wages change after COVID after accounting for inflation, and which groups had stronger growth?
 
-The project also keeps the original remote work question:
-
-Did workers in occupations suited to remote work experience different wage growth after COVID compared with workers in occupations less suited to remote work?
+The project also compares occupations that are more and less suited to remote work. This helps show whether jobs that could be done from home had stronger wage growth after COVID.
 
 ## Data
 
-The worker data comes from ACS/IPUMS. The raw ACS file should be saved here:
+The worker data comes from the American Community Survey (ACS), accessed through IPUMS. The sample includes 2016, 2017, 2018, 2019, 2021, 2022, 2023, and 2024. Save the raw ACS file here:
 
 ```text
 data/raw/usa_00001.dta
@@ -37,7 +35,7 @@ INCWAGE
 PERWT
 ```
 
-Remote work feasibility comes from the Dingel and Neiman occupation level work from home feasibility file. Save it here:
+The Dingel and Neiman work from home file measures how suited each occupation is to remote work. Save it here:
 
 ```text
 data/raw/remote/occupations_workathome.csv
@@ -55,7 +53,7 @@ The ACS extract includes `OCCSOC`, so the Stata code can merge workers to the re
 
 ## Main Variables
 
-The main outcome is annual wage income adjusted into 2024 dollars:
+The main outcome is annual wage income in 2024 dollars. Using the same year's dollars allows wages to be compared after accounting for inflation:
 
 ```stata
 gen annual_wage = incwage
@@ -63,7 +61,7 @@ gen real_annual_wage = annual_wage * (313.689 / cpi)
 gen log_real_wage = log(real_annual_wage)
 ```
 
-I use annual wage income instead of hourly wage because `WKSWORK1` is missing for 2016-2018 in the current ACS extract. I adjust wages for inflation using CPI-U annual averages, so the main outcome is measured in 2024 dollars.
+I use annual wage income because the weeks worked variable, `WKSWORK1`, is missing for 2016 through 2018 in the current extract. Without it, hourly wages cannot be calculated consistently across years. I adjust each year's income using the annual Consumer Price Index for All Urban Consumers (CPI-U).
 
 The after COVID variable is:
 
@@ -95,7 +93,7 @@ The main coefficient is:
 
 If this coefficient is positive, occupations suited to remote work had higher wage growth after COVID relative to occupations less suited to remote work. If it is negative, they had lower relative wage growth.
 
-Because the outcome is log real wage income, a coefficient like `0.05` is roughly a 5 percent difference in purchasing power wages.
+Because the outcome is the log of real annual wage income, a coefficient of `0.05` represents roughly a 5 percent difference in earnings after accounting for inflation.
 
 ## How to Run
 
@@ -154,18 +152,10 @@ outputs/figures/percent_growth_by_group.png
 
 ## Results
 
-The finished writeup is in:
+The full results and discussion are in [research_summary.md](research_summary.md).
 
-```text
-research_summary.md
-```
+Average annual wage income increased by about 22 percent after COVID. After accounting for inflation, the increase was only about 2.4 percent. This shows that higher prices took away most of the increase in purchasing power.
 
-The main result is that nominal wage income rose after COVID, but inflation adjusted wage income rose much less. In other words, wages rose on paper, but higher prices erased most of the purchasing power gain.
-
-Younger workers, women, and workers without college degrees had better real wage outcomes than older workers, men, and workers with college degrees. The remote work result is more mixed. Workers in occupations suited to remote work had higher wage levels overall, but their real wage growth after COVID was weaker than the growth for less remote suited occupations. The key number for that part is:
-
-```text
-1.remote_workable#1.covid
-```
+Younger workers, women, and workers without college degrees had stronger average real earnings growth than their comparison groups. Workers in occupations suited to remote work earned more overall, but had slightly weaker growth. These differences may reflect changes in pay, working hours, and who remained employed. Since the data does not follow the same workers each year, the results do not show that every worker in these groups became better off.
 
 The full regression output is saved in `outputs/tables/regressions.txt`.
