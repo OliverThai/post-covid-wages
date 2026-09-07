@@ -72,9 +72,19 @@ The state figure shows average real wage levels after COVID. The highest real wa
 
 The inequality figure compares P10, P50, and P90 real annual wages over time. This helps show whether lower wage, middle wage, and higher wage workers moved differently after COVID.
 
+These patterns suggest several possible explanations. Younger workers and workers without college degrees may have benefited from employers competing harder to hire and retain staff. Better job offers could have given these workers more bargaining power. This is consistent with research by Autor, Dube, and McGrew, who found stronger wage growth and more job switching among young workers with a high school education or less during the recovery. Their education categories differ from mine, and my analysis does not track job changes, so this is a possible explanation rather than a finding of this project. [The Unexpected Compression](https://www.nber.org/papers/w31010)
+
+Older workers may have received smaller gains if they stayed in jobs where raises did not keep up with inflation. Changes in working hours could also explain part of the difference. Since I measure annual earnings, someone who worked fewer hours could have weak earnings growth even if their hourly pay increased. Similarly, weaker growth among college graduates does not mean a degree stopped being valuable; higher earnings levels and faster earnings growth are different things.
+
+The results for women require particular care. Stronger average earnings growth could reflect pay increases, changes in hours, or differences in who remained employed. For example, if lower earning women left employment, average earnings among employed women could rise without anyone receiving a raise. BLS documented how the loss of lower paying jobs affected earnings statistics during the pandemic, although that does not establish what explains my later sample. Higher average earnings among employed women can therefore coexist with hardship among women who left work. [BLS discussion of pandemic effects on earnings](https://www.bls.gov/regions/west/news-release/pdf/womensearnings_alaska.pdf)
+
+The remote work result may also reflect stronger growth in jobs requiring physical presence, rather than a penalty from remote work itself. If employers in those jobs faced greater difficulty hiring, they may have raised pay more. Workers might also value flexibility enough to accept smaller raises, but my data does not measure that tradeoff. The occupation score alone cannot distinguish these explanations.
+
 ## 5. Limitations
 
 This project does not prove that COVID caused these wage changes. It compares years before and after COVID, but other things were changing at the same time.
+
+The samples contain different workers each year rather than following the same people. Changes in group averages may reflect who was employed as well as changes in earnings. The explanations above would require additional evidence on job changes, working time, and employment exits to test directly.
 
 ACS does not say whether each person actually worked remotely. I only know whether their occupation is more suited to remote work.
 
@@ -88,6 +98,6 @@ Some results, like industry and state rankings, are descriptive. They show patte
 
 The main finding is that nominal wages rose a lot after COVID, but real wages rose only a little after adjusting for inflation. In other words, workers earned more dollars, but higher prices took away most of the gain.
 
-The results also show that wage changes differed across groups. Younger workers, women, and workers without college degrees had better real wage growth than older workers, men, and workers with college degrees. Workers in remote suited occupations had higher wage levels overall, but their real wage growth after COVID was slightly weaker than the growth for workers in less remote suited occupations.
+The gains were not concentrated among groups with traditionally higher earnings. Workers without college degrees had stronger growth than college graduates, while occupations suited to remote work did not gain an additional earnings advantage. One possible interpretation is that competition for workers helped some lower paid workers gain ground. However, changes in working hours and who remained employed could also explain part of the pattern, especially the results by age and sex. The evidence therefore suggests modest overall gains in purchasing power alongside uneven changes in earnings, without establishing that every group with stronger average growth experienced better individual outcomes.
 
 This project is related to research on hybrid work, turnover, and promotions, but it uses public labor market data instead of company records. Since ACS does not measure promotions directly, I use inflation adjusted wage income as a rough measure of career progress.
