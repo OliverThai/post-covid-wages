@@ -1,226 +1,189 @@
-# 03_figures.R
-# This file makes figures from the CSV files created in Stata.
-
+# Figures and readable tables from Stata estimates. No regressions are fit in R.
 args <- commandArgs(trailingOnly = TRUE)
-
-if (length(args) > 0) {
-  project <- args[1]
-} else {
-  project <- getwd()
-}
-
-setwd(project)
-
+if (length(args) > 0) setwd(args[1])
 library(ggplot2)
+stopifnot(file.exists("outputs/tables/ANALYSIS_COMPLETE.txt"))
+tables <- "outputs/tables"
+figures <- "outputs/figures"
+read_table <- function(name) read.csv(file.path(tables, paste0(name, ".csv")))
+results <- read_table("trend_results")
+paths <- read_table("trend_paths")
+relative <- read_table("relative_changes")
+events <- read_table("event_gaps")
+pretests <- read_table("pretrend_tests")
+support <- read_table("common_support")
+flow <- read_table("sample_flow")
 
-overall <- read.csv("data/processed/overall_trends_for_r.csv")
-remote <- read.csv("data/processed/remote_trends_for_r.csv")
-race <- read.csv("data/processed/race_trends_for_r.csv")
-age <- read.csv("data/processed/age_trends_for_r.csv")
-gender <- read.csv("data/processed/gender_trends_for_r.csv")
-college <- read.csv("data/processed/college_trends_for_r.csv")
-industry <- read.csv("data/processed/industry_trends_for_r.csv")
-state <- read.csv("data/processed/state_trends_for_r.csv")
-ineq <- read.csv("data/processed/inequality_trends_for_r.csv")
-
-state_names <- data.frame(
-  stateicp = c(1, 2, 3, 4, 5, 6, 11, 12, 13, 14,
-    21, 22, 23, 24, 25, 31, 32, 33, 34, 35,
-    36, 37, 40, 41, 42, 43, 44, 45, 46, 47,
-    48, 49, 51, 52, 53, 54, 56, 61, 62, 63,
-    64, 65, 66, 67, 68, 71, 72, 73, 81, 82,
-    83, 98),
-  state_name = c("Connecticut", "Maine", "Massachusetts", "New Hampshire",
-    "Rhode Island", "Vermont", "Delaware", "New Jersey", "New York",
-    "Pennsylvania", "Illinois", "Indiana", "Michigan", "Ohio", "Wisconsin",
-    "Iowa", "Kansas", "Minnesota", "Missouri", "Nebraska", "North Dakota",
-    "South Dakota", "Virginia", "Alabama", "Arkansas", "Florida", "Georgia",
-    "Louisiana", "Mississippi", "North Carolina", "South Carolina", "Texas",
-    "Kentucky", "Maryland", "Oklahoma", "Tennessee", "West Virginia",
-    "Arizona", "Colorado", "Idaho", "Montana", "Nevada", "New Mexico",
-    "Utah", "Wyoming", "California", "Oregon", "Washington", "Alaska",
-    "Hawaii", "Puerto Rico", "District of Columbia")
-)
-
-state <- merge(state, state_names, by = "stateicp")
-
-overall$group <- "All workers"
-
-remote$group <- ifelse(remote$remote_workable == 1,
-  "More suited to remote work",
-  "Less suited to remote work"
-)
-
-race$group <- ifelse(race$race == 1, "White",
-  ifelse(race$race == 2, "Black",
-    ifelse(race$race == 3, "American Indian",
-      ifelse(race$race %in% c(4, 5, 6), "Asian/Pacific Islander",
-        ifelse(race$race %in% c(8, 9), "Multiracial", "Other race")
-      )
-    )
+group_label <- function(family, group) {
+  labels <- list(
+    overall = "All employed earners",
+    age = c("Ages 25-34", "Ages 35-44", "Ages 45-54"),
+    sex = c("Men", "Women"),
+    college = c("Below bachelor's", "Bachelor's or higher"),
+    age_college = c("25-34: below bachelor's", "25-34: bachelor's or higher",
+      "35-44: below bachelor's", "35-44: bachelor's or higher",
+      "45-54: below bachelor's", "45-54: bachelor's or higher")
   )
-)
+  mapply(function(f, g) labels[[f]][g], as.character(family), group, USE.NAMES = FALSE)
+}
+scenario_labels <- c(main = "Fixed 2019 composition", raw_mix = "Changing composition",
+  cap99 = "Cap at pre-period P99", income_timing = "ACS income timing adjustment",
+  all_earners = "Include earners not employed now", race_fixed = "Also fix race composition",
+  omit2021 = "Post trend starts in 2022", late_baseline = "Pre trend starts in 2017")
 
-age$group <- ifelse(age$age_group == 1, "25-34",
-  ifelse(age$age_group == 2, "35-44", "45-54")
-)
+# Adjustment covers all 18 exploratory post-period relative contrasts together.
+relative$p_holm <- NA_real_
+post_rows <- relative$metric != "relative_pre_slope"
+relative$p_holm[post_rows] <- p.adjust(relative$p[post_rows], method = "holm")
+pretests$p_holm <- p.adjust(pretests$p, method = "holm")
+relative$label <- group_label(relative$family, relative$group)
+relative$reference_label <- group_label(relative$family, relative$reference)
+write.csv(relative, file.path(tables, "relative_changes_adjusted.csv"), row.names = FALSE)
+write.csv(pretests, file.path(tables, "pretrend_tests_adjusted.csv"), row.names = FALSE)
 
-gender$group <- ifelse(gender$sex == 1, "Men", "Women")
+results$label <- group_label(results$family, results$group)
+results$percent <- 100 * expm1(results$estimate)
+results$percent_lower <- 100 * expm1(results$lower)
+results$percent_upper <- 100 * expm1(results$upper)
+main <- subset(results, scenario == "main")
+main_slopes <- subset(main, metric %in% c("pre_slope", "post_slope"))
+main_slopes$period <- ifelse(main_slopes$metric == "pre_slope", "2016-2019", "2021-2024")
+main_slopes$family_label <- factor(main_slopes$family,
+  levels = c("overall", "age", "sex", "college", "age_college"),
+  labels = c("Overall", "Age", "Sex", "Education", "Age and education"))
+write.csv(results, file.path(tables, "interpreted_estimates.csv"), row.names = FALSE)
 
-college$group <- ifelse(college$college == 1,
-  "College degree",
-  "No college degree"
-)
+# Use observed 2019 as a common denominator; this indexes geometric means.
+paths$label <- group_label(paths$family, paths$group)
+main_paths <- subset(paths, scenario == "main")
+baseline <- subset(main_paths, year == 2019, select = c(family, group, observed))
+names(baseline)[3] <- "base2019"
+main_paths <- merge(main_paths, baseline, by = c("family", "group"))
+main_paths$index <- 100 * exp(main_paths$observed - main_paths$base2019)
+main_paths$projection <- 100 * exp(main_paths$projected - main_paths$base2019)
+main_paths$period <- ifelse(main_paths$year < 2020, "Before", "After")
+theme_set(theme_minimal(base_size = 11) +
+  theme(panel.grid.minor = element_blank(), plot.title = element_text(face = "bold"),
+    plot.caption = element_text(hjust = 0, size = 9), legend.position = "bottom"))
+years <- c(2016:2019, 2021:2024)
+save_plot <- function(name, plot, width = 9, height = 6) {
+  ggsave(file.path(figures, name), plot, width = width, height = height, dpi = 180, bg = "white")
+}
+overall <- subset(main_paths, family == "overall")
+p <- ggplot(overall, aes(year, index)) +
+  geom_vline(xintercept = 2020, linetype = "dotted", color = "grey45") +
+  geom_line(aes(y = projection, color = "Pre-period trend projected forward"), linetype = "dashed") +
+  geom_line(aes(group = period, color = "Observed")) + geom_point(size = 2) +
+  scale_color_manual(values = c("Observed" = "#007C83",
+    "Pre-period trend projected forward" = "#A34628")) +
+  scale_x_continuous(breaks = years) +
+  labs(title = "Did real earnings keep up with their earlier trend?", x = NULL,
+    y = "Geometric mean earnings index (observed 2019 = 100)", color = NULL,
+    caption = "Fixed 2019 age, sex, degree and state composition. No 2020 observation.\nFour pre-period years support a linear projection, not a causal counterfactual.")
+save_plot("01_earnings_vs_prior_trend.png", p)
 
-p1 <- ggplot(overall, aes(x = year, y = real_annual_wage)) +
-  geom_line(color = "#2563eb", linewidth = 1.1) +
-  geom_point(color = "#2563eb", size = 2) +
-  geom_vline(xintercept = 2020, linetype = "dashed", color = "gray40") +
-  labs(
-    title = "Post COVID Purchasing Power Wages",
-    x = "Year",
-    y = "Average annual wage income in 2024 dollars"
-  ) +
-  theme_minimal()
+p <- ggplot(subset(main_slopes, family != "age_college"),
+    aes(x = percent, y = label, color = period)) +
+  geom_linerange(aes(xmin = percent_lower, xmax = percent_upper),
+    position = position_dodge(width = .55), orientation = "y") +
+  geom_point(position = position_dodge(width = .55), size = 2.5) +
+  facet_wrap(~family_label, scales = "free_y", ncol = 2) +
+  scale_color_manual(values = c("2016-2019" = "#A34628", "2021-2024" = "#007C83")) +
+  labs(title = "Growth rates before and after COVID", x = "Fitted annual growth (%)",
+    y = NULL, color = "Period",
+    caption = "Growth of geometric mean real annual earnings, not individual raises.\n95% intervals cluster by state; common national shocks and projection uncertainty remain.")
+save_plot("02_growth_rates.png", p, height = 7)
 
-ggsave("outputs/figures/overall_wage_growth.png", p1, width = 8, height = 5, dpi = 300)
+gaps <- subset(main, metric == "gap2024" & family != "age_college")
+p <- ggplot(gaps, aes(percent, reorder(label, percent))) +
+  geom_vline(xintercept = 0, color = "grey50", linetype = "dotted") +
+  geom_linerange(aes(xmin = percent_lower, xmax = percent_upper), orientation = "y") +
+  geom_point(color = "#007C83", size = 2.5) +
+  labs(title = "2024 fitted earnings relative to the earlier trend",
+    x = "Difference from projected pre-period trend (%)", y = NULL,
+    caption = "Negative values mean below the projection, not below 2019 earnings.\nModel-based 95% intervals cluster by state; these are not causal effects of COVID.")
+save_plot("03_departure_from_trend.png", p)
 
-p2 <- ggplot(remote, aes(x = year, y = log_real_wage, color = group)) +
-  geom_line(linewidth = 1.1) +
-  geom_point(size = 2) +
-  geom_vline(xintercept = 2020, linetype = "dashed", color = "gray40") +
-  labs(
-    title = "Post COVID Purchasing Power Wages by Remote Work Feasibility",
-    x = "Year",
-    y = "Average log real annual wage income",
-    color = ""
-  ) +
-  theme_minimal()
+events <- subset(events, family != "age_college")
+events$comparison <- paste(group_label(events$family, events$group), "vs",
+  group_label(events$family, events$reference))
+events$period <- ifelse(events$year < 2020, "Before", "After")
+p <- ggplot(events, aes(year, 100*estimate)) +
+  geom_hline(yintercept = 0, color = "grey65") +
+  geom_vline(xintercept = 2020, linetype = "dotted", color = "grey45") +
+  geom_errorbar(aes(ymin = 100*lower, ymax = 100*upper), width = .15) +
+  geom_line(aes(group = period), color = "#007C83") + geom_point(size = 1.7) +
+  facet_wrap(~comparison, ncol = 2) + scale_x_continuous(breaks = c(2016,2019,2021,2024)) +
+  labs(title = "Were group differences already changing before COVID?",
+    x = NULL, y = "Change in earnings gap since 2019 (log points x 100)",
+    caption = "State-group and state-year fixed effects; state-clustered 95% intervals.\n2019 is the reference year. Earlier differences challenge a simple parallel-trends interpretation.")
+save_plot("04_relative_yearly_gaps.png", p, height = 7)
 
-ggsave("outputs/figures/log_wage_trends.png", p2, width = 8, height = 5, dpi = 300)
+sensitivity <- subset(results, family == "overall" & metric == "gap2024")
+sensitivity$setting <- unname(scenario_labels[sensitivity$scenario])
+p <- ggplot(sensitivity, aes(percent, reorder(setting, percent))) +
+  geom_vline(xintercept = 0, linetype = "dotted", color = "grey45") +
+  geom_linerange(aes(xmin = percent_lower, xmax = percent_upper), orientation = "y") +
+  geom_point(color = "#A34628", size = 2.5) +
+  labs(title = "How sensitive is the departure from trend?",
+    x = "2024 fitted earnings relative to projected trend (%)", y = NULL,
+    caption = "Specifications change composition, earnings treatment, sample or trend window.\nIntervals condition on the model; they do not capture all uncertainty about the counterfactual.")
+save_plot("05_sensitivity.png", p)
 
-industry$period <- ifelse(industry$year > 2020, "After COVID", "Before COVID")
-industry_avg <- aggregate(real_annual_wage ~ ind + period, data = industry, FUN = mean)
+p <- ggplot(subset(main_paths, family == "age_college"), aes(year, index)) +
+  geom_vline(xintercept = 2020, linetype = "dotted", color = "grey45") +
+  geom_line(aes(y = projection), color = "#A34628", linetype = "dashed") +
+  geom_line(aes(group = period), color = "#007C83") + geom_point(size = 1.3) +
+  facet_wrap(~label, ncol = 2) + scale_x_continuous(breaks = c(2016,2019,2021,2024)) +
+  labs(title = "Age and degree status: observed earnings and earlier trends",
+    x = NULL, y = "Geometric mean earnings index (2019 = 100)",
+    caption = "Teal: observed; dashed rust: pre-period projection. Bachelor's status does not identify recent graduates.\nThese are repeated cross sections, not individual career paths.")
+save_plot("06_age_and_degree.png", p, height = 8)
 
-industry_pre <- subset(industry_avg, period == "Before COVID")
-industry_post <- subset(industry_avg, period == "After COVID")
-
-names(industry_pre)[3] <- "pre_real_wage"
-names(industry_post)[3] <- "post_real_wage"
-
-industry_growth <- merge(
-  industry_pre[, c("ind", "pre_real_wage")],
-  industry_post[, c("ind", "post_real_wage")],
-  by = "ind"
-)
-
-industry_growth$wage_growth <- industry_growth$post_real_wage - industry_growth$pre_real_wage
-industry_growth <- industry_growth[order(-industry_growth$wage_growth), ]
-top_industry <- head(industry_growth, 10)
-top_industry$ind <- as.character(top_industry$ind)
-
-write.csv(top_industry, "outputs/tables/top_industry_growth.csv", row.names = FALSE)
-
-p8 <- ggplot(top_industry, aes(x = reorder(ind, wage_growth), y = wage_growth)) +
-  geom_col(fill = "#2563eb") +
-  coord_flip() +
-  labs(
-    title = "Industries With the Biggest Post COVID Purchasing Power Growth",
-    x = "Industry code",
-    y = "Real wage income growth after COVID"
-  ) +
-  theme_minimal()
-
-ggsave("outputs/figures/top_industry_growth.png", p8, width = 8, height = 5, dpi = 300)
-
-state_level <- subset(state, year > 2020)
-state_level <- aggregate(real_annual_wage ~ stateicp + state_name, data = state_level, FUN = mean)
-names(state_level)[3] <- "post_covid_wage"
-state_level <- state_level[order(-state_level$post_covid_wage), ]
-top_state_level <- head(state_level, 15)
-
-write.csv(top_state_level, "outputs/tables/top_state_wage_levels.csv", row.names = FALSE)
-
-p10 <- ggplot(top_state_level, aes(x = reorder(state_name, post_covid_wage), y = post_covid_wage)) +
-  geom_col(fill = "#7c3aed") +
-  coord_flip() +
-  labs(
-    title = "States With the Highest Purchasing Power Wages After COVID",
-    x = "State",
-    y = "Average annual wage income in 2024 dollars"
-  ) +
-  theme_minimal()
-
-ggsave("outputs/figures/state_wage_levels.png", p10, width = 8, height = 5, dpi = 300)
-
-p12_data <- data.frame(
-  year = c(ineq$year, ineq$year, ineq$year),
-  wage = c(ineq$wage_p10, ineq$wage_p50, ineq$wage_p90),
-  group = c(
-    rep("P10: lower wage workers", nrow(ineq)),
-    rep("P50: median workers", nrow(ineq)),
-    rep("P90: higher wage workers", nrow(ineq))
-  )
-)
-
-p12 <- ggplot(p12_data, aes(x = year, y = wage, color = group)) +
-  geom_line(linewidth = 1.1) +
-  geom_point(size = 2) +
-  geom_vline(xintercept = 2020, linetype = "dashed", color = "gray40") +
-  labs(
-    title = "Lower, Median, and Higher Purchasing Power Wage Trends",
-    x = "Year",
-    y = "Annual wage income in 2024 dollars",
-    color = ""
-  ) +
-  theme_minimal()
-
-ggsave("outputs/figures/p10_p50_p90_trends.png", p12, width = 8, height = 5, dpi = 300)
-
-gender_small <- gender[, c("year", "real_annual_wage", "group")]
-gender_small$type <- "Gender"
-
-college_small <- college[, c("year", "real_annual_wage", "group")]
-college_small$type <- "Education"
-
-age_small <- age[, c("year", "real_annual_wage", "group")]
-age_small$type <- "Age"
-
-race_small <- race[, c("year", "real_annual_wage", "group")]
-race_small$type <- "Race"
-
-group_data <- rbind(gender_small, college_small, age_small, race_small)
-group_data$period <- ifelse(group_data$year > 2020, "After COVID", "Before COVID")
-
-group_avg <- aggregate(real_annual_wage ~ type + group + period, data = group_data, FUN = mean)
-
-group_pre <- subset(group_avg, period == "Before COVID")
-group_post <- subset(group_avg, period == "After COVID")
-
-names(group_pre)[4] <- "pre_real_wage"
-names(group_post)[4] <- "post_real_wage"
-
-group_growth <- merge(
-  group_pre[, c("type", "group", "pre_real_wage")],
-  group_post[, c("type", "group", "post_real_wage")],
-  by = c("type", "group")
-)
-
-group_growth$percent_growth <- 100 * (group_growth$post_real_wage - group_growth$pre_real_wage) / group_growth$pre_real_wage
-
-write.csv(group_growth, "outputs/tables/percent_growth_by_group.csv", row.names = FALSE)
-
-p13 <- ggplot(group_growth, aes(x = reorder(group, percent_growth), y = percent_growth)) +
-  geom_col(fill = "#2563eb") +
-  coord_flip() +
-  facet_wrap(~type, scales = "free_y") +
-  labs(
-    title = "Post COVID Purchasing Power Wage Growth by Group",
-    x = "",
-    y = "Percent growth in 2024 dollars"
-  ) +
-  theme_minimal()
-
-ggsave("outputs/figures/percent_growth_by_group.png", p13, width = 10, height = 7, dpi = 300)
-
-message("Saved figures to outputs/figures/")
+# Regenerates numerical report; the root research summary is an interpreted snapshot.
+fmt <- function(x) sprintf("%.2f", x)
+report <- c("# Reproducible results", "",
+  "Generated from Stata tables. Main scenario fixes 2019 single-year age, sex, degree and state composition.",
+  "Inference is conditional on a linear model and state clustering, not a causal COVID design.", "",
+  "| Group | Pre annual growth (%) | Post annual growth (%) | Slope change (log pp/year) | 2024 departure (%) |",
+  "|---|---:|---:|---:|---:|")
+keys <- unique(main[, c("family", "group", "label")])
+for (i in seq_len(nrow(keys))) {
+  d <- subset(main, family == keys$family[i] & group == keys$group[i])
+  val <- function(metric, column) d[d$metric == metric, column]
+  report <- c(report, paste0("| ", keys$label[i], " | ",
+    fmt(val("pre_slope", "percent")), " | ", fmt(val("post_slope", "percent")), " | ",
+    fmt(100*val("slope_change", "estimate")), " | ", fmt(val("gap2024", "percent")), " |"))
+}
+report <- c(report, "", "## Sensitivity: overall earnings", "",
+  "| Specification | Pre annual growth (%) | Post annual growth (%) | 2024 departure (%) |",
+  "|---|---:|---:|---:|")
+for (s in names(scenario_labels)) {
+  d <- subset(results, family == "overall" & scenario == s)
+  val <- function(m) d$percent[d$metric == m]
+  report <- c(report, paste0("| ", scenario_labels[s], " | ", fmt(val("pre_slope")),
+    " | ", fmt(val("post_slope")), " | ", fmt(val("gap2024")), " |"))
+}
+report <- c(report, "", "## Sample and inference", "",
+  paste("Employed positive-earner records:", format(sum(flow$observations[
+    flow$stage == "main_employed_positive_earners"]), scientific = FALSE, big.mark = ",")),
+  paste("Minimum fixed-cell population coverage (main):",
+    sprintf("%.3f%%", 100*min(with(subset(support, scenario == "main"), retained_weight/total_weight)))),
+  paste("Minimum fixed-cell population coverage (race sensitivity):",
+    sprintf("%.3f%%", 100*min(with(subset(support, scenario == "race_fixed"), retained_weight/total_weight)))),
+  "",
+  "Relative changes use state-year effects to absorb common local shocks. The 18 post-period relative contrasts receive Holm adjustment together. Pretrend tests are adjusted separately across nine comparisons.",
+  "The growth-rate change is 100 times the log slope change, not the exact difference between the two exponentiated annual rates.",
+  "State-clustered intervals do not account for unrestricted common national shocks or full ACS replicate-weight variance. Baseline composition weights are treated as fixed.",
+  "The post trend is measured within 2021-2024 (2022-2024 in omit2021). It does not include the unobserved 2020 transition.",
+  "A negative fitted 2024 departure does not prove that COVID caused a loss or that the extrapolated trend would have continued.")
+writeLines(report, file.path(tables, "research_results.md"))
+inputs <- c("data/raw/usa_00001.dta", "run_project.do", "code/00_setup.do",
+  "code/01_build_data.do", "code/02_analysis.do", "code/03_figures.R")
+checksums <- tools::md5sum(inputs)
+manifest <- c(paste("Completed at:", format(Sys.time(), tz = "UTC", usetz = TRUE)),
+  "Input and code MD5 checksums (integrity checks, not anonymization):",
+  paste(names(checksums), unname(checksums)), "", capture.output(sessionInfo()))
+writeLines(manifest, file.path(tables, "run_manifest.txt"))
+writeLines("Figures and numerical report completed.", file.path(figures, "FIGURES_COMPLETE.txt"))
+message("Saved six revised figures and research_results.md")

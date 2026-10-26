@@ -1,93 +1,64 @@
-# Post COVID Wages
+# Earnings Growth After COVID Relative to Earlier Trends
 
-An increase in wages does not always mean workers can afford more. When prices rise, the same income buys fewer goods and services. This project uses public ACS/IPUMS data to study how wages changed after COVID after accounting for inflation. It also compares groups of workers to see whether some had stronger growth than others.
+## Research question
 
-## 1. Hypothesis
+Did real annual earnings grow faster after COVID than they had beforehand? Comparing groups only after COVID can be misleading. Younger workers may have had faster earnings growth than older workers even before the pandemic. The relevant question is whether that difference changed.
 
-My hypothesis is that average real wages would either fall or grow only slightly after COVID because inflation reduced the value of wage gains. I also expect wage changes to differ across occupations, industries, and age groups because COVID affected different parts of the labor market in different ways.
+This revision therefore compares growth during 2016-2019 with growth during 2021-2024. It also asks where earnings stood in 2024 relative to a continuation of each group's earlier trend. The analysis is exploratory. These questions were developed while reviewing weaknesses in the earlier project, not specified before any results were observed.
 
-## 2. Data
+## Data and approach
 
-The data comes from the American Community Survey (ACS), accessed through IPUMS. I use observations from 2016, 2017, 2018, 2019, 2021, 2022, 2023, and 2024. The sample includes employed workers ages 25 to 54 with valid annual wage income. After cleaning the data and applying the sample restrictions, the number of observations fell from 26,255,293 to 3,771,395.
+The data comes from the American Community Survey through IPUMS. The main sample includes 7,057,956 observations of employed people ages 25-54 with positive wage and salary income. The sample does not depend on matching occupations to a remote-work score, and high earners are not removed from the main analysis. Missing-income codes are excluded explicitly.
 
-The wage variable, `INCWAGE`, measures annual wage income. Because prices changed during this period, comparing the reported dollar amounts alone would not show whether workers could afford more. I use the Consumer Price Index (CPI) to convert each year's income into 2024 dollars:
+Earnings are adjusted to 2024 dollars using annual national CPI-U. They measure pretax wage and salary income over the preceding 12 months, not hourly pay or earnings from a fixed calendar year. Higher earnings may reflect changes in working hours as well as pay. The data contains different people each year and does not measure individual promotions or career progression. [IPUMS income documentation](https://usa.ipums.org/usa-action/variables/INCWAGE)
 
-```text
-real_annual_wage = annual_wage * CPI_2024 / CPI_year
-```
+To limit changes caused by the mix of respondents, the main series holds the joint distribution of exact age, sex, bachelor's degree status and state at its 2019 composition. All of these main-sample cells are observed in every included year. A separate specification also fixes broad race composition; it covers at least 98.2% of the eligible weighted population in each year.
 
-This gives real annual wage income, which accounts for inflation, instead of just nominal income, which is the dollar amount reported.
+The outcome is average log real annual earnings. Reported growth rates describe the geometric mean, obtained by exponentiating the average log, rather than the arithmetic dollar mean. For each group, the model estimates a linear trend before COVID, a level difference in 2021, and a change in growth thereafter. State effects account for persistent differences in earnings levels across states.
 
-The remote work measure comes from Dingel and Neiman work from home scores. I merge it to ACS using the `OCCSOC` occupation code. About 42 percent of workers in the sample are in occupations classified as more suited to remote work.
+I also compare changes between groups while including state-year effects. This removes shocks shared by groups within the same state and year, but does not remove shocks that affect groups differently. The figures include uncertainty intervals clustered by state. These intervals do not capture every source of uncertainty about a national shock or a projected trend.
 
-## 3. Method
+## Results
 
-I use ordinary least squares (OLS) regressions to compare the log of real annual wage income before and after COVID. The years before COVID are 2016 through 2019, and the years after COVID are 2021 through 2024. The basic model can be written as:
+| Group | Annual growth, 2016-2019 | Annual growth, 2021-2024 |
+|---|---:|---:|
+| All employed earners | 1.04% | 0.79% |
+| Ages 25-34 | 1.57% | 1.46% |
+| Ages 35-44 | 0.86% | 0.51% |
+| Ages 45-54 | 0.62% | 0.31% |
+| Men | 0.98% | 0.56% |
+| Women | 1.11% | 1.05% |
+| Below bachelor's degree | 1.30% | 0.98% |
+| Bachelor's degree or higher | 0.66% | 0.51% |
 
-```text
-log_real_wage = covid + controls
-```
+Younger workers had faster growth than older workers in both periods. Their estimated growth rate did not accelerate after COVID. This changes the earlier interpretation: stronger post-period growth among younger workers is not, by itself, evidence of an unusual benefit from the pandemic.
 
-The project also uses a difference in differences style regression:
+The age-by-degree comparison adds a useful distinction. Among people ages 25-34 with at least a bachelor's degree, estimated annual growth rose from 1.03% to 1.50%. Among people of the same age without a bachelor's degree, it fell from 1.96% to 1.44%. The data identifies degree holders, not recent graduates, and these are different samples of people across years. The apparent acceleration for younger degree holders remains exploratory; its relative comparison with older degree holders does not survive the adjustment for multiple tests.
 
-```text
-log_real_wage = remote_workable + covid + remote_workable x covid + controls
-```
+Women's estimated annual growth changed little, while men's growth slowed more. Workers without bachelor's degrees continued to grow faster than degree holders, but they had already been growing faster before COVID. These point estimates describe differences worth investigating, not proven effects of sex, education, or COVID. None of the 18 post-period relative contrasts meets a 5% threshold after Holm adjustment across those comparisons.
 
-The main coefficient for the remote work part is:
+The main fitted 2024 earnings level was about 4.83% below a continuation of the 2016-2019 trend. That does not mean earnings fell 4.83% from 2019. It means they were below a particular projected path. A recovery can produce positive annual growth while still leaving earnings below an earlier trend.
 
-```text
-1.remote_workable#1.covid
-```
+## How much depends on the choices?
 
-This interaction shows whether real wage income changed more or less in occupations suited to remote work compared with other occupations. The main before and after regression controls for age, age squared, education, sex, race, state, and industry. Additional remote work specifications include year controls. These comparisons help account for differences between workers, but do not prove that COVID or remote work caused the changes.
+The estimated overall 2024 shortfall remains negative across all eight specifications, ranging from about 2.81% to 5.60%. These checks change composition adjustment, the upper-income treatment, employment restrictions, income timing, or the years used for the trend.
 
-## 4. Results
+The estimated post-period growth rate is less stable. Excluding 2021 raises it from 0.79% to 1.49%, consistent with a stronger rebound after 2022. Applying the alternative ACS income timing adjustment reduces it to about 0.14%. The project therefore should not present a single growth rate as independent of the chosen period or income convention. IPUMS notes that the extra timing adjustment is itself imperfect and does not recommend it as a universal correction. [IPUMS timing guidance](https://usa.ipums.org/usa/acsincadj.shtml)
 
-Nominal wages increased a lot after COVID. Average annual wage income rose from about $47,738 before COVID to about $58,288 after COVID, which is about a 22 percent increase.
+The earlier trends are not perfectly stable either. A model fitted to 2016-2018 underpredicts 2019 overall mean log earnings by about 0.64%. The group-year diagnostics also show earlier changes in the age and degree gaps. These checks make the projected path a useful benchmark, but not a known account of what would have happened without COVID.
 
-After adjusting for inflation, the increase is much smaller. Average real annual wage income rose from about $60,381 before COVID to about $61,848 after COVID. That is only about a 2.4 percent increase. This means wages went up in dollar terms, but higher prices reduced most of the gain.
+## What can be said about causality?
 
-The main regression shows the same basic idea. The coefficient on `1.covid` is about `0.006`, so real wage income was about 0.6 percent higher after COVID after adding controls.
+The data does not provide an untreated group for the pandemic as a whole. State-year effects help account for shared local conditions in relative comparisons, but cannot separate COVID from every other change that affected groups differently. Four pre-period observations are not enough to establish a reliable long-run counterfactual.
 
-For remote work, workers in remote suited occupations had higher wage levels overall. However, they did not have stronger real wage growth after COVID. In the full regression, the coefficient on `1.remote_workable#1.covid` is about `-0.010`, meaning remote suited occupations had about 1.0 percent lower real wage growth after COVID compared with less remote suited occupations.
+A causal extension would require a more specific treatment and a defensible source of variation, such as a clearly defined policy change with suitable comparison areas. That would be a different research design requiring additional data and checks. This project does not relabel a trend projection as a causal estimate.
 
-Real wage growth differed across age groups. Workers ages 25 to 34 had growth of about 5.0 percent, compared with 1.9 percent for workers ages 35 to 44 and 0.5 percent for workers ages 45 to 54. Women had growth of about 5.1 percent, while men had growth of about 0.5 percent. Workers without a college degree had an increase of about 1.5 percent, compared with a decrease of about 1.4 percent for college graduates. These are comparisons of group averages, not changes in the earnings of the same people.
+Other limitations remain. Restricting the main sample to employed positive earners leaves out people who lost employment or had no wage income. National CPI does not adjust for local living costs. Public income records are topcoded, and the data does not fully separate working time from pay. Composition adjustment covers observed characteristics, not every difference between workers. State-clustered intervals treat the 2019 composition weights as fixed and do not implement the full ACS replicate-weight variance design.
 
-By race, real wage growth was highest for workers listed as other race, White workers, and Black workers. Other race workers had growth of about 6.9 percent, White workers about 5.5 percent, and Black workers about 3.8 percent. Asian and Pacific Islander workers had growth of about 3.0 percent, while multiracial workers had growth of about -2.6 percent.
+## Conclusion
 
-Some industries still had strong real wage growth even after inflation. The largest real wage increases were in industry codes 9790, 6695, 8170, 7580, and 1890.
+The revised analysis shows why post-COVID growth should be compared with earlier growth. Younger workers' faster earnings growth largely continued an existing pattern. Younger degree holders show a different descriptive pattern, but the relative evidence is not strong enough to claim a causal advantage.
 
-The state figure shows average real wage levels after COVID. The highest real wage levels are in the District of Columbia, Massachusetts, Maryland, New Jersey, and Washington.
+The most consistent result across the tested specifications is that fitted 2024 real earnings remained below the continuation of the earlier trend, even as earnings recovered. The size of that gap and the speed of recovery depend on the assumptions. This makes the project useful as a transparent description of earnings trends and their sensitivity, rather than a claim that COVID caused a precisely measured loss.
 
-The inequality figure compares real annual wages at the 10th, 50th, and 90th percentiles. These represent the lower end, middle, and upper end of the sample's earnings distribution. Comparing them helps show whether growth was concentrated at a particular part of the distribution.
-
-Competition for workers could help explain the differences by age and education. When employers have difficulty hiring, workers may have more opportunities to leave for better paying jobs. This can also push employers to raise wages to keep their current workers. Research by Autor, Dube, and McGrew found stronger wage growth and more job switching among young workers with a high school education or less during the recovery. While their education groups differ from mine, this could help explain why younger workers and workers without college degrees had stronger growth in my sample. My analysis does not track job changes, so it cannot test this explanation directly. [The Unexpected Compression](https://www.nber.org/papers/w31010)
-
-Older workers may have experienced smaller gains if they stayed in jobs where raises did not keep up with inflation. Working hours could also contribute to this difference. For example, someone who reduced their hours could earn less over the year even if their hourly pay increased. Weaker growth among college graduates does not mean a degree stopped being valuable. A group can still earn more than another group while having a smaller increase in earnings.
-
-Changes in who remained employed could help explain the results for women. If women with lower earnings left work, the average earnings of those still employed could rise without anyone receiving a raise. Changes in pay and hours could also contribute. BLS reported that the loss of lower paying jobs affected earnings statistics during the pandemic. While this does not explain my later sample on its own, it shows why higher average earnings do not necessarily mean all women became better off. Women who left employment are not included in my comparison. [BLS discussion of pandemic effects on earnings](https://www.bls.gov/regions/west/news-release/pdf/womensearnings_alaska.pdf)
-
-Differences in hiring could also explain the remote work result. Employers in jobs that require workers to be there in person may have raised pay more if they had difficulty finding staff. This would allow those jobs to gain ground compared with occupations suited to remote work. Another possibility is that workers valued the flexibility of working from home enough to accept smaller raises. However, the data does not measure these choices, so neither explanation can be confirmed by this project.
-
-## 5. Limitations
-
-This project does not prove that COVID caused these wage changes. It compares years before and after COVID, but other things were changing at the same time.
-
-The data includes different workers each year, so changes in average earnings may reflect who was employed as well as changes in pay. More information on job changes, working hours, and people leaving employment would be needed to test the possible explanations discussed above.
-
-The remote work measure used here only shows whether an occupation is suited to working from home. It does not establish whether each worker actually worked remotely.
-
-The wage measure is annual wage income, not hourly pay. That means the results may reflect hours worked, weeks worked, job changes, and employment patterns, not just wage rates.
-
-The inflation adjustment uses one national price index, so it does not account for local cost of living differences.
-
-Some results, like industry and state rankings, are descriptive. They show patterns, but they do not prove that an industry or state caused higher wages.
-
-## 6. Conclusion
-
-The main finding is that nominal wages rose a lot after COVID, but real wages rose only a little after adjusting for inflation. In other words, workers earned more dollars, but higher prices took away most of the gain.
-
-The groups with higher earnings did not always have stronger growth. Workers without college degrees had larger increases than college graduates, and occupations suited to remote work did not have an additional increase compared with other occupations. Greater competition for workers could have helped some lower paid workers gain ground. However, changes in hours and who remained employed could also explain part of these differences. Overall, purchasing power improved only slightly, and the increase was not shared equally across groups. The results do not show that every worker in a group with stronger growth became better off.
-
-This project is connected to research on hybrid work, turnover, and promotions. While those studies may use company records, this project uses public labor market data. Annual wage income gives some information about workers' earnings, but it does not directly measure promotions or follow individual career progress.
+The [generated results report](outputs/tables/research_results.md), [research design](research_design.md), and accompanying figures provide the estimates, checks, and assumptions behind these conclusions. They replace the earlier remote-work and simple before/after findings.

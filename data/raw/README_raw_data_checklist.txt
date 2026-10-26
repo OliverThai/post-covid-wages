@@ -1,17 +1,9 @@
-Raw data checklist
-==================
-
-Put the ACS/IPUMS Stata file here:
-
-data/raw/usa_00001.dta
-
-Put the Dingel-Neiman remote-workability CSV here:
-
-data/raw/remote/occupations_workathome.csv
-
-The ACS/IPUMS file should include OCCSOC.
-
-That lets the project merge ACS occupations to the Dingel-Neiman SOC codes
-without a separate crosswalk file.
-
-The scripts will not create fake results if these files are missing.
+Required input: usa_00001.dta, a Stata extract from IPUMS USA.
+Use one-year ACS samples: 2016, 2017, 2018, 2019, 2021, 2022, 2023, 2024.
+Variables: YEAR SAMPLE SERIAL PERNUM AGE SEX RACE EDUC EDUCD EMPSTAT
+STATEICP PERWT INCWAGE UHRSWORK WKSWORK1.
+Expected imported variable names are lowercase.
+Do not pre-adjust monetary values or substitute five-year ACS files.
+IPUMS registration and extract access: https://usa.ipums.org/usa/
+No remote-work CSV or occupation crosswalk is required by the revised pipeline.
+The existing remote folder is retained but not used.

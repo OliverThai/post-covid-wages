@@ -26,5 +26,26 @@ outputs/figures/*
 !outputs/tables/.gitkeep
 !outputs/figures/.gitkeep
 
+# Superseded local outputs and run-specific diagnostics
+outputs/legacy/
+outputs/logs/
+
+# Reviewed aggregate results and figures, never microdata
+!outputs/tables/research_results.md
+!outputs/tables/trend_results.csv
+!outputs/tables/trend_paths.csv
+!outputs/tables/relative_changes_adjusted.csv
+!outputs/tables/pretrend_tests_adjusted.csv
+!outputs/tables/common_support.csv
+!outputs/tables/sample_flow.csv
+!outputs/tables/weighted_quantiles.csv
+!outputs/tables/employment_and_income_coverage.csv
+!outputs/figures/01_earnings_vs_prior_trend.png
+!outputs/figures/02_growth_rates.png
+!outputs/figures/03_departure_from_trend.png
+!outputs/figures/04_relative_yearly_gaps.png
+!outputs/figures/05_sensitivity.png
+!outputs/figures/06_age_and_degree.png
+
 # System files
 .DS_Store

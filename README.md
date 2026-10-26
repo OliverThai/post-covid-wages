@@ -1,111 +1,63 @@
 # Post COVID Wages
 
-This project looks at how wages changed after COVID using public ACS/IPUMS data. I adjust earnings for inflation to see whether workers could actually afford more, then compare changes across groups of workers, industries, states, and occupations suited to remote work.
+Did real annual earnings grow unusually quickly after COVID, or were differences between groups already present beforehand?
 
-I use Stata to clean the data and run regressions, and R to make the figures.
+This project compares **annual growth in 2016-2019 with annual growth in 2021-2024**, rather than just comparing two period averages. It also measures how far fitted 2024 earnings were above or below a continuation of the earlier trend. Stata handles cleaning and estimation; R makes the figures.
 
-## Research Question
+The distinction changes the findings. Workers ages 25-34 had faster growth than older workers, but their annual growth was already about 1.57% before COVID and was about 1.46% afterward. Faster growth than another group is not the same as an acceleration after COVID.
 
-How did wages change after COVID after accounting for inflation, and which groups had stronger growth?
+![Annual growth before and after COVID](outputs/figures/02_growth_rates.png)
 
-The project also compares occupations that are more and less suited to remote work. This helps show whether jobs that could be done from home had stronger wage growth after COVID.
+## Data and sample
 
-## Data
+Public ACS one-year microdata from [IPUMS USA](https://usa.ipums.org/usa/) cover 2016, 2017, 2018, 2019, 2021, 2022, 2023, and 2024. There are no 2020 or 2025 observations in this extract. Do not substitute overlapping five-year ACS samples.
 
-The worker data comes from the American Community Survey (ACS), accessed through IPUMS. The sample includes 2016, 2017, 2018, 2019, 2021, 2022, 2023, and 2024. Save the raw ACS file here:
+The main sample contains 7,057,956 records of employed people ages 25-54 with positive wage and salary income. It no longer requires an occupation match and does not delete high earners using the old two-standard-deviation rule. A separate specification includes positive earners who were not employed at the survey date.
+
+Create an IPUMS USA extract with these one-year samples and variables:
+`YEAR SAMPLE SERIAL PERNUM AGE SEX RACE EDUC EDUCD EMPSTAT STATEICP PERWT INCWAGE UHRSWORK WKSWORK1`.
+Choose Stata format, use the supplied import instructions if needed, and put the resulting dataset at:
 
 ```text
 data/raw/usa_00001.dta
 ```
 
-The project uses these ACS/IPUMS variables:
+The expected imported names are lowercase. Exact weeks worked is not available for all years; it is not used to construct the main outcome. Do not apply an IPUMS monetary adjustment on top of this script's inflation conversion.
 
-```text
-YEAR
-AGE
-SEX
-RACE
-EDUC
-EMPSTAT
-OCC
-OCCSOC
-IND
-STATEICP
-INCWAGE
-PERWT
-```
-
-The Dingel and Neiman work from home file measures how suited each occupation is to remote work. Save it here:
-
-```text
-data/raw/remote/occupations_workathome.csv
-```
-
-That file should include:
-
-```text
-onetsoccode
-title
-teleworkable
-```
-
-The ACS extract includes `OCCSOC`, so the Stata code can merge workers to the remote work data using SOC occupation codes.
-
-## Main Variables
-
-The main outcome is annual wage income in 2024 dollars. Using the same year's dollars allows wages to be compared after accounting for inflation:
-
-```stata
-gen annual_wage = incwage
-gen real_annual_wage = annual_wage * (313.689 / cpi)
-gen log_real_wage = log(real_annual_wage)
-```
-
-I use annual wage income because the weeks worked variable, `WKSWORK1`, is missing for 2016 through 2018 in the current extract. Without it, hourly wages cannot be calculated consistently across years. I adjust each year's income using the annual Consumer Price Index for All Urban Consumers (CPI-U).
-
-The after COVID variable is:
-
-```stata
-gen covid = year > 2020
-```
-
-The sample keeps employed workers ages 25 to 54.
+Annual earnings are converted to 2024 dollars using national CPI-U. ACS income refers to the preceding 12 months, so the conversion is an approximation to the timing of income received. [Income definition](https://usa.ipums.org/usa-action/variables/INCWAGE), [income timing guidance](https://usa.ipums.org/usa/acsincadj.shtml), [CPI source](https://www.bls.gov/regions/mid-atlantic/data/consumerpriceindexannualandsemiannual_table.htm).
 
 ## Method
 
-The basic regression compares real wages before and after COVID:
+The main analysis holds the joint distribution of single-year age, sex, degree status and state at its 2019 composition. It compares annual mean log earnings using state-level panels. This avoids interpreting a growing share of older or college-educated respondents as pay growth. It does not hold every worker characteristic constant or follow individuals.
 
-```text
-log_real_wage = covid + controls
+The model estimates an earlier trend, a level difference in 2021, and a change in slope after 2021. The model and exact weighting formula are in [research_design.md](research_design.md). Separate comparisons include state-year effects, allowing groups to be compared after accounting for shocks shared within a state and year.
+
+The analysis includes earlier-trend diagnostics, a 2019 forecast backtest, eight specifications, state-clustered intervals, and adjustments for multiple group comparisons. **These are descriptive trend comparisons, not identified causal effects of COVID.** Only four pre-period years are available, and post-period slopes are sensitive to the starting year.
+
+The previous remote-work comparison and industry/state rankings are retired from the active workflow. Their classification and interpretation problems should not be carried into the revised results. Old local outputs are preserved under `outputs/legacy/pre_revision/`; they are not current findings.
+
+## Run
+
+Requires Stata 16 or newer and R with `ggplot2`. For the optional independent validation checks, install `haven` and `data.table` too:
+
+```r
+install.packages(c("ggplot2", "haven", "data.table"))
 ```
 
-The remote work regression uses an interaction:
-
-```text
-log_real_wage = remote_workable + covid + remote_workable x covid + controls
-```
-
-The main coefficient is:
-
-```text
-1.remote_workable#1.covid
-```
-
-If this coefficient is positive, occupations suited to remote work had higher wage growth after COVID relative to occupations less suited to remote work. If it is negative, they had lower relative wage growth.
-
-Because the outcome is the log of real annual wage income, a coefficient of `0.05` represents roughly a 5 percent difference in earnings after accounting for inflation.
-
-## How to Run
-
-Open Stata and move into the project folder:
+From Stata:
 
 ```stata
 cd "PATH/TO/post-covid-wages"
+do run_project.do
 ```
 
-Replace `PATH/TO` with the place where the project is saved on your computer.
+This runs all Stata steps and calls R. If Rscript is not on Stata's PATH, pass its executable path:
 
-Then run:
+```stata
+do run_project.do "/PATH/TO/Rscript"
+```
+
+Or run the steps separately:
 
 ```stata
 do code/00_setup.do
@@ -113,49 +65,30 @@ do code/01_build_data.do
 do code/02_analysis.do
 ```
 
-The last Stata file runs the R figure script automatically. If R does not run from Stata, run this separately in Terminal:
+Then, from a terminal in the project folder:
 
 ```text
 Rscript code/03_figures.R
 ```
 
-## Outputs
+The code intentionally rejects unrecognized years or sample types rather than silently treating them as comparable. Extending the analysis requires adding CPI values, updating the model windows and tests, and reviewing sample definitions.
 
-Main cleaned data files:
+## Results and checks
 
-```text
-data/processed/cleaned.dta
-data/processed/remote_soc_only.dta
-data/processed/analysis_data.dta
+Read [research_summary.md](research_summary.md) for interpretation and [the generated numerical report](outputs/tables/research_results.md) for the complete tables. The report is rebuilt by the R script; the root summary is a reviewed snapshot of that output.
+
+The six current figures show earnings versus the earlier trend, pre/post growth rates, departures from trend, yearly group gaps, sensitivity checks, and age-by-degree patterns. Aggregated results are public; raw and processed microdata stay local.
+
+Run these checks after the pipeline:
+
+```stata
+do tests/trend_algebra.do
 ```
 
-Tables:
-
 ```text
-outputs/tables/summary_stats.txt
-outputs/tables/regressions.txt
-outputs/tables/top_industry_growth.csv
-outputs/tables/top_state_wage_levels.csv
-outputs/tables/percent_growth_by_group.csv
+Rscript tests/validate_outputs.R
 ```
 
-Figures:
+The first checks known coefficients on synthetic test data, which never enters the research sample. The second independently checks aggregation, identities between estimates, sample coverage, and output completeness. The run manifest records input/code checksums and the R environment. Stata logs record the software version and estimation steps.
 
-```text
-outputs/figures/overall_wage_growth.png
-outputs/figures/log_wage_trends.png
-outputs/figures/top_industry_growth.png
-outputs/figures/state_wage_levels.png
-outputs/figures/p10_p50_p90_trends.png
-outputs/figures/percent_growth_by_group.png
-```
-
-## Results
-
-The full results and discussion are in [research_summary.md](research_summary.md).
-
-Average annual wage income increased by about 22 percent after COVID. After accounting for inflation, the increase was only about 2.4 percent. This shows that higher prices took away most of the increase in purchasing power.
-
-Younger workers, women, and workers without college degrees had stronger average real earnings growth than their comparison groups. Workers in occupations suited to remote work earned more overall, but had slightly weaker growth. These differences may reflect changes in pay, working hours, and who remained employed. Since the data does not follow the same workers each year, the results do not show that every worker in these groups became better off.
-
-The full regression output is saved in `outputs/tables/regressions.txt`.
+A successful test run validates implementation checks, not the assumptions needed for causal inference.

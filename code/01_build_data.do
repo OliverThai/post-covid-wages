@@ -1,106 +1,127 @@
-* 01_build_data.do
-* Clean ACS, clean remote work data, and merge everything together
-
+* Broad earnings sample: no occupation match and no arbitrary earnings deletion.
+version 16
 clear all
 set more off
+set varabbrev off
+capture mkdir "outputs/logs"
+capture log close
+log using "outputs/logs/build_data.log", text replace
 
-global project "`c(pwd)'"
-cd "$project"
-
-* Clean ACS/IPUMS data
-
-use "data/raw/usa_00001.dta", clear
-
+use year sample serial pernum age sex race educ educd empstat stateicp ///
+    perwt incwage uhrswork wkswork1 using "data/raw/usa_00001.dta", clear
 capture rename *, lower
+assert inlist(year,2016,2017,2018,2019,2021,2022,2023,2024)
+assert sample == year*100 + 1
+quietly levelsof year, local(years)
+local nyears : word count `years'
+assert `nyears' == 8
+display "Stata version: " c(stata_version)
 
-keep if empstat == 1
-keep if !missing(age) & age >= 25 & age <= 54
+tempname audit
+postfile `audit' str40 stage int year double observations double population using ///
+    "data/processed/sample_flow.dta", replace
+capture program drop record_sample
+program define record_sample
+    args handle stage
+    foreach y in 2016 2017 2018 2019 2021 2022 2023 2024 {
+        quietly count if year == `y'
+        local n = r(N)
+        quietly summarize perwt if year == `y', meanonly
+        post `handle' ("`stage'") (`y') (`n') (r(sum))
+    }
+end
+record_sample `audit' raw
+keep if inrange(age,25,54)
+record_sample `audit' ages_25_54
+keep if perwt > 0 & !missing(perwt)
+keep if inlist(sex,1,2) & inrange(educ,0,11) & inrange(educd,2,116)
+keep if !missing(stateicp) & stateicp != 0 & stateicp != 83
+record_sample `audit' valid_weight_demographics
+isid sample serial pernum
 
-keep if !missing(incwage) & incwage > 0
+gen byte employed = empstat == 1
+gen byte valid_income = !missing(incwage) & !inlist(incwage,999998,999999)
+gen byte positive_income = valid_income & incwage > 0
+gen byte college = inlist(educd,101,114,115,116)
+gen byte age_group = floor((age-25)/10) + 1
+gen byte race_group = 4
+replace race_group = 1 if race == 1
+replace race_group = 2 if race == 2
+replace race_group = 3 if inlist(race,4,5,6)
+gen byte age_college = (age_group-1)*2 + college + 1
 
-gen soc = trim(occsoc)
-drop if soc == "" | soc == "0" | soc == "000000"
-drop if strpos(soc, "X") > 0
+* Selection diagnostics include people excluded from positive-earner models.
+preserve
+collapse (mean) employed positive_income valid_income [pw=perwt], ///
+    by(year age_group sex college)
+export delimited using "outputs/tables/employment_and_income_coverage.csv", replace
+restore
+keep if positive_income
+record_sample `audit' positive_valid_wage_income
 
-gen annual_wage = incwage
-
-* CPI-U annual averages. Wages are converted into 2024 dollars.
-* Formula: real wage = nominal wage * CPI in 2024 / CPI in that year.
-gen cpi = .
+gen double cpi = .
 replace cpi = 240.007 if year == 2016
 replace cpi = 245.120 if year == 2017
 replace cpi = 251.107 if year == 2018
 replace cpi = 255.657 if year == 2019
-replace cpi = 258.811 if year == 2020
 replace cpi = 270.970 if year == 2021
 replace cpi = 292.655 if year == 2022
 replace cpi = 304.702 if year == 2023
 replace cpi = 313.689 if year == 2024
+assert !missing(cpi)
+gen double real_annual_wage = incwage * 313.689 / cpi
+gen double log_real_wage = log(real_annual_wage)
 
-drop if missing(cpi)
+* Fixed pre-period upper cap is a sensitivity check, not the main sample.
+quietly _pctile real_annual_wage [aw=perwt] if year <= 2019 & employed, p(99)
+scalar cap99 = r(r1)
+gen double log_capped = log(min(real_annual_wage,scalar(cap99)))
+display "Pre-period weighted P99 cap in 2024 dollars: " scalar(cap99)
 
-gen real_annual_wage = annual_wage * (313.689 / cpi)
+* Optional rolling-income adjustment; it is not an exact timing correction.
+gen double adjust = .
+replace adjust = 1.007588 if year == 2016
+replace adjust = 1.011189 if year == 2017
+replace adjust = 1.013097 if year == 2018
+replace adjust = 1.010145 if year == 2019
+replace adjust = 1.029928 if year == 2021
+replace adjust = 1.042311 if year == 2022
+replace adjust = 1.019518 if year == 2023
+replace adjust = 1.015250 if year == 2024
+gen double log_adjusted = log_real_wage + log(adjust)
 
-sum real_annual_wage
-local mean = r(mean)
-local sd = r(sd)
-drop if real_annual_wage > `mean' + (2 * `sd')
-drop if real_annual_wage < `mean' - (2 * `sd')
+preserve
+keep if employed
+record_sample `audit' main_employed_positive_earners
+tempname quant
+postfile `quant' int year double p10 double p50 double p90 using ///
+    "data/processed/weighted_quantiles.dta", replace
+foreach y in 2016 2017 2018 2019 2021 2022 2023 2024 {
+    quietly _pctile real_annual_wage [aw=perwt] if year == `y', p(10 50 90)
+    post `quant' (`y') (r(r1)) (r(r2)) (r(r3))
+}
+postclose `quant'
+restore
+postclose `audit'
 
-gen covid = year > 2020
-gen log_nominal_wage = log(annual_wage)
-gen log_real_wage = log(real_annual_wage)
-gen log_wage = log_real_wage
-gen age2 = age^2
-gen college = educ >= 10
+* Sufficient statistics retain survey-weighted sums, not averages of averages.
+gen double weight = perwt
+gen double weighted_log = perwt * log_real_wage
+gen double weighted_real = perwt * real_annual_wage
+gen double weighted_nominal = perwt * incwage
+gen double weighted_capped = perwt * log_capped
+gen double weighted_adjusted = perwt * log_adjusted
+gen long n = 1
+collapse (sum) weight weighted_log weighted_real weighted_nominal ///
+    weighted_capped weighted_adjusted n, ///
+    by(year stateicp age sex college age_group age_college race_group employed)
+isid year stateicp age sex college race_group employed
+assert weight > 0 & n > 0
+save "data/processed/earnings_cells.dta", replace
 
-label define college_label 0 "No college degree" 1 "College degree"
-label values college college_label
-
-gen age_group = .
-replace age_group = 1 if age >= 25 & age <= 34
-replace age_group = 2 if age >= 35 & age <= 44
-replace age_group = 3 if age >= 45 & age <= 54
-
-label define age_group_label 1 "25-34" 2 "35-44" 3 "45-54"
-label values age_group age_group_label
-
-count
-sum annual_wage real_annual_wage log_real_wage age
-tab year
-tab covid
-
-save "data/processed/cleaned.dta", replace
-
-* Clean Dingel and Neiman remote work data
-
-import delimited "data/raw/remote/occupations_workathome.csv", clear varnames(1)
-
-rename onetsoccode soc
-rename teleworkable remote_workable
-
-replace soc = subinstr(soc, "-", "", .)
-replace soc = subinstr(soc, ".", "", .)
-replace soc = substr(soc, 1, 6)
-
-keep soc remote_workable
-drop if missing(soc)
-drop if missing(remote_workable)
-collapse (mean) remote_score=remote_workable, by(soc)
-gen remote_workable = remote_score >= .5
-
-save "data/processed/remote_soc_only.dta", replace
-
-* Merge ACS with remote work data
-
-use "data/processed/cleaned.dta", clear
-
-merge m:1 soc using "data/processed/remote_soc_only.dta"
-tab _merge
-
-keep if _merge == 3
-drop _merge
-
-save "data/processed/analysis_data.dta", replace
-
-di "Saved final data to data/processed/analysis_data.dta"
+use "data/processed/sample_flow.dta", clear
+export delimited using "outputs/tables/sample_flow.csv", replace
+use "data/processed/weighted_quantiles.dta", clear
+gen p90_p10_ratio = p90/p10
+export delimited using "outputs/tables/weighted_quantiles.csv", replace
+log close
