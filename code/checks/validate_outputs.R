@@ -1,3 +1,4 @@
+# Run from the project folder: Rscript code/checks/validate_outputs.R
 # Independent aggregation checks, model identities, and coverage checks.
 library(haven)
 library(data.table)

@@ -49,4 +49,4 @@ The project cannot separate COVID from everything else that happened during thes
 
 Faster earnings growth after COVID often continued an earlier pattern. Younger degree holders show a difference worth investigating, but the evidence does not establish why it happened. Overall earnings grew during the recovery while remaining below the projected earlier trend. These findings describe changes in earnings, not a proven earnings loss caused by COVID.
 
-The [full results](outputs/tables/research_results.md) and [method details](research_design.md) provide the calculations and checks.
+The [full results](outputs/tables/research_results.md) and [optional method details](README.md#method-details) provide the calculations and checks.

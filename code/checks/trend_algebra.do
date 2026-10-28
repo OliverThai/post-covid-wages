@@ -1,3 +1,4 @@
+* Optional check, run from the project folder: do code/checks/trend_algebra.do
 * Synthetic data test: recover known pre/post slopes and group differences.
 * Synthetic observations are never used in the research outputs.
 version 16

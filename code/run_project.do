@@ -1,4 +1,4 @@
-* One entry point. Set the working directory to this repository.
+* Run do code/run_project.do from the project folder.
 version 16
 args rscript
 if "`rscript'" == "" local rscript Rscript

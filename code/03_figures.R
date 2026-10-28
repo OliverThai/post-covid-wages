@@ -178,7 +178,7 @@ report <- c(report, "", "## Sample and inference", "",
   "The post trend is measured within 2021-2024 (2022-2024 in omit2021). It does not include the unobserved 2020 transition.",
   "A negative fitted 2024 departure does not prove that COVID caused a loss or that the extrapolated trend would have continued.")
 writeLines(report, file.path(tables, "research_results.md"))
-inputs <- c("data/raw/usa_00001.dta", "run_project.do", "code/00_setup.do",
+inputs <- c("data/raw/usa_00001.dta", "code/run_project.do", "code/00_setup.do",
   "code/01_build_data.do", "code/02_analysis.do", "code/03_figures.R")
 checksums <- tools::md5sum(inputs)
 manifest <- c(paste("Completed at:", format(Sys.time(), tz = "UTC", usetz = TRUE)),
