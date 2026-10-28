@@ -1,63 +1,58 @@
 # Post COVID Wages
 
-Did real annual earnings grow unusually quickly after COVID, or were differences between groups already present beforehand?
+This project studies how real annual earnings changed after COVID. It compares growth from 2016 to 2019 with growth from 2021 to 2024, looking at age, sex and education. Stata handles the data and regressions; R makes the figures.
 
-This project compares **annual growth in 2016-2019 with annual growth in 2021-2024**, rather than just comparing two period averages. It also measures how far fitted 2024 earnings were above or below a continuation of the earlier trend. Stata handles cleaning and estimation; R makes the figures.
+The main question is whether earnings grew faster than they had before. For example, workers ages 25 to 34 had estimated annual growth of 1.57% before COVID and 1.46% afterward. They still grew faster than older workers, but that difference was already present before the pandemic.
 
-The distinction changes the findings. Workers ages 25-34 had faster growth than older workers, but their annual growth was already about 1.57% before COVID and was about 1.46% afterward. Faster growth than another group is not the same as an acceleration after COVID.
+![Annual earnings growth before and after COVID](outputs/figures/02_growth_rates.png)
 
-![Annual growth before and after COVID](outputs/figures/02_growth_rates.png)
+The analysis accounts for inflation and keeps the mix of ages, sexes, degree status and states the same as in 2019. It also checks how the results change with different years and sample choices. These comparisons describe earnings patterns; they do not prove that COVID caused them. Read the [research summary](research_summary.md) for the findings and what they mean.
 
-## Data and sample
+## Data
 
-Public ACS one-year microdata from [IPUMS USA](https://usa.ipums.org/usa/) cover 2016, 2017, 2018, 2019, 2021, 2022, 2023, and 2024. There are no 2020 or 2025 observations in this extract. Do not substitute overlapping five-year ACS samples.
+The project uses public American Community Survey data from [IPUMS USA](https://usa.ipums.org/usa/). Select the individual annual ACS samples for 2016, 2017, 2018, 2019, 2021, 2022, 2023 and 2024. Do not select the combined five year samples. There are no 2020 or 2025 observations in this extract.
 
-The main sample contains 7,057,956 records of employed people ages 25-54 with positive wage and salary income. It no longer requires an occupation match and does not delete high earners using the old two-standard-deviation rule. A separate specification includes positive earners who were not employed at the survey date.
+Include these variables:
 
-Create an IPUMS USA extract with these one-year samples and variables:
-`YEAR SAMPLE SERIAL PERNUM AGE SEX RACE EDUC EDUCD EMPSTAT STATEICP PERWT INCWAGE UHRSWORK WKSWORK1`.
-Choose Stata format, use the supplied import instructions if needed, and put the resulting dataset at:
+```text
+YEAR SAMPLE SERIAL PERNUM AGE SEX RACE EDUC EDUCD EMPSTAT
+STATEICP PERWT INCWAGE UHRSWORK WKSWORK1
+```
+
+Choose Stata format and follow the IPUMS import instructions. Place the resulting dataset here:
 
 ```text
 data/raw/usa_00001.dta
 ```
 
-The expected imported names are lowercase. Exact weeks worked is not available for all years; it is not used to construct the main outcome. Do not apply an IPUMS monetary adjustment on top of this script's inflation conversion.
+The scripts expect lowercase variable names after import. Exact weeks worked is not available for every year, so the project uses annual earnings rather than calculating hourly pay. The main sample includes about 7.1 million records of employed people ages 25 to 54 with positive wage income. These are different people each year, not individual workers tracked over time.
 
-Annual earnings are converted to 2024 dollars using national CPI-U. ACS income refers to the preceding 12 months, so the conversion is an approximation to the timing of income received. [Income definition](https://usa.ipums.org/usa-action/variables/INCWAGE), [income timing guidance](https://usa.ipums.org/usa/acsincadj.shtml), [CPI source](https://www.bls.gov/regions/mid-atlantic/data/consumerpriceindexannualandsemiannual_table.htm).
+The code converts earnings to 2024 dollars using the Consumer Price Index. Do not apply another inflation adjustment to the extract beforehand. Income covers the previous 12 months, so the adjustment is approximate. Details are available in the [income definition](https://usa.ipums.org/usa-action/variables/INCWAGE), [income timing guidance](https://usa.ipums.org/usa/acsincadj.shtml), and [price index table](https://www.bls.gov/regions/mid-atlantic/data/consumerpriceindexannualandsemiannual_table.htm).
 
-## Method
+## Running the project
 
-The main analysis holds the joint distribution of single-year age, sex, degree status and state at its 2019 composition. It compares annual mean log earnings using state-level panels. This avoids interpreting a growing share of older or college-educated respondents as pay growth. It does not hold every worker characteristic constant or follow individuals.
-
-The model estimates an earlier trend, a level difference in 2021, and a change in slope after 2021. The model and exact weighting formula are in [research_design.md](research_design.md). Separate comparisons include state-year effects, allowing groups to be compared after accounting for shocks shared within a state and year.
-
-The analysis includes earlier-trend diagnostics, a 2019 forecast backtest, eight specifications, state-clustered intervals, and adjustments for multiple group comparisons. **These are descriptive trend comparisons, not identified causal effects of COVID.** Only four pre-period years are available, and post-period slopes are sensitive to the starting year.
-
-The previous remote-work comparison and industry/state rankings are retired from the active workflow. Their classification and interpretation problems should not be carried into the revised results. Old local outputs are preserved under `outputs/legacy/pre_revision/`; they are not current findings.
-
-## Run
-
-Requires Stata 16 or newer and R with `ggplot2`. For the optional independent validation checks, install `haven` and `data.table` too:
+Use Stata 16 or newer and R. Install the R packages once:
 
 ```r
 install.packages(c("ggplot2", "haven", "data.table"))
 ```
 
-From Stata:
+Only `ggplot2` is needed for the figures. The other two packages are used for the optional data checks.
+
+In Stata, replace the placeholder below with the location of your project folder:
 
 ```stata
 cd "PATH/TO/post-covid-wages"
 do run_project.do
 ```
 
-This runs all Stata steps and calls R. If Rscript is not on Stata's PATH, pass its executable path:
+This runs the analysis and calls R to make the figures without opening RStudio. If Stata cannot find Rscript, give it the location of that program:
 
 ```stata
 do run_project.do "/PATH/TO/Rscript"
 ```
 
-Or run the steps separately:
+You can also run the steps separately in Stata:
 
 ```stata
 do code/00_setup.do
@@ -65,30 +60,20 @@ do code/01_build_data.do
 do code/02_analysis.do
 ```
 
-Then, from a terminal in the project folder:
+Then run this from a terminal in the project folder:
 
 ```text
 Rscript code/03_figures.R
 ```
 
-The code intentionally rejects unrecognized years or sample types rather than silently treating them as comparable. Extending the analysis requires adding CPI values, updating the model windows and tests, and reviewing sample definitions.
+The scripts are written for the eight listed years. Adding years requires updating the inflation values, comparisons and checks, not just replacing the raw file.
 
 ## Results and checks
 
-Read [research_summary.md](research_summary.md) for interpretation and [the generated numerical report](outputs/tables/research_results.md) for the complete tables. The report is rebuilt by the R script; the root summary is a reviewed snapshot of that output.
+The six figures are saved in `outputs/figures`, and the tables are saved in `outputs/tables`. The [results report](outputs/tables/research_results.md) updates automatically when the R script runs. The research summary is a separate written interpretation and needs to be reviewed when results change. Raw and processed survey data stay local; only combined results are published.
 
-The six current figures show earnings versus the earlier trend, pre/post growth rates, departures from trend, yearly group gaps, sensitivity checks, and age-by-degree patterns. Aggregated results are public; raw and processed microdata stay local.
+The [method details](research_design.md) explain the regressions, weights and limits of the analysis. They are separate from the summary so the main findings can be read without working through every statistical detail.
 
-Run these checks after the pipeline:
+To check the calculations after running the project, run `do tests/trend_algebra.do` in Stata and `Rscript tests/validate_outputs.R` from the terminal. These check known regression results using test data and verify that the reported numbers agree with the processed data. Passing them does not establish cause and effect.
 
-```stata
-do tests/trend_algebra.do
-```
-
-```text
-Rscript tests/validate_outputs.R
-```
-
-The first checks known coefficients on synthetic test data, which never enters the research sample. The second independently checks aggregation, identities between estimates, sample coverage, and output completeness. The run manifest records input/code checksums and the R environment. Stata logs record the software version and estimation steps.
-
-A successful test run validates implementation checks, not the assumptions needed for causal inference.
+The earlier remote work comparison and industry and state rankings are no longer part of the analysis. Previous local outputs are stored in `outputs/legacy/pre_revision` and should not be used as current results.
